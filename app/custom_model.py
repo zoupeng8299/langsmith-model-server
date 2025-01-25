@@ -98,3 +98,57 @@ class CustomLLM(LLM):
             name="Num Characters",
             description="Number of characters to return from the input prompt.",
         ))
+
+
+class ChatOllama(LLM):
+    """A custom class to interact with the Ollama server."""
+
+    def __init__(self, model: str, base_url: str, temperature: float, config: Dict[str, Any]):
+        self.model = model
+        self.base_url = base_url
+        self.temperature = temperature
+        self.config = config
+
+    def _call(
+            self,
+            prompt: str,
+            stop: Optional[List[str]] = None,
+            run_manager: Optional[CallbackManagerForLLMRun] = None,
+            **kwargs: Any,
+    ) -> str:
+        """Run the LLM on the given input using the Ollama server."""
+        # Implement the logic to call the Ollama server here
+        # This is a placeholder implementation
+        response = f"Calling Ollama server at {self.base_url} with model {self.model}"
+        return response
+
+    def _stream(
+            self,
+            prompt: str,
+            stop: Optional[List[str]] = None,
+            run_manager: Optional[CallbackManagerForLLMRun] = None,
+            **kwargs: Any,
+    ) -> Iterator[GenerationChunk]:
+        """Stream the LLM on the given prompt using the Ollama server."""
+        # Implement the logic to stream from the Ollama server here
+        # This is a placeholder implementation
+        for char in prompt:
+            chunk = GenerationChunk(text=char)
+            if run_manager:
+                run_manager.on_llm_new_token(chunk.text, chunk=chunk)
+            yield chunk
+
+    @property
+    def _identifying_params(self) -> Dict[str, Any]:
+        """Return a dictionary of identifying parameters."""
+        return {
+            "model_name": self.model,
+            "base_url": self.base_url,
+            "temperature": self.temperature,
+            "config": self.config,
+        }
+
+    @property
+    def _llm_type(self) -> str:
+        """Get the type of language model used by this chat model. Used for logging purposes only."""
+        return "ollama"

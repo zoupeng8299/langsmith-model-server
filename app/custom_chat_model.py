@@ -4,6 +4,7 @@ from langchain_core.callbacks import (
     CallbackManagerForLLMRun,
 )
 from langchain_core.language_models import BaseChatModel
+from langchain_ollama import ChatOllama
 from langchain_core.messages import AIMessageChunk, BaseMessage, AIMessage
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.runnables import ConfigurableField, Runnable
@@ -17,6 +18,17 @@ class CustomChatModel(BaseChatModel):
     """
 
     n: int = 5
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.llm = ChatOllama(
+            model="deepseek-r1:8b",
+            base_url="http://192.168.1.100:11434",
+            temperature=0,
+            config={
+                "num_ctx": 8192  # safe context length
+            }
+        )
 
     def _generate(
             self,
@@ -40,19 +52,14 @@ class CustomChatModel(BaseChatModel):
                   downstream and understand why generation stopped.
             run_manager: A run manager with callbacks for the LLM.
         """
-        # Replace this with actual logic to generate a response from a list
-        # of messages.
-        last_message = messages[-1]
-        tokens = last_message.content[: self.n]
+        response = self.llm.generate(messages, stop=stop)
         message = AIMessage(
-            content=tokens,
+            content=response['content'],
             additional_kwargs={},  # Used to add additional payload (e.g., function calling request)
             response_metadata={  # Use for response metadata
-                "time_in_seconds": 3,
+                "time_in_seconds": response['time_in_seconds'],
             },
         )
-        ##
-
         generation = ChatGeneration(message=message)
         return ChatResult(generations=[generation])
 
@@ -81,18 +88,12 @@ class CustomChatModel(BaseChatModel):
                   downstream and understand why generation stopped.
             run_manager: A run manager with callbacks for the LLM.
         """
-        last_message = messages[-1]
-        tokens = last_message.content[:self.n]
-
-        for token in tokens:
-            chunk = ChatGenerationChunk(message=AIMessageChunk(content=token))
-            yield chunk
-
-        # Let's add some other information (e.g., response metadata)
-        chunk = ChatGenerationChunk(
-            message=AIMessageChunk(content="", response_metadata={"time_in_sec": 3})
+        response = self.llm.stream(messages, stop=stop)
+        for chunk in response:
+            yield ChatGenerationChunk(message=AIMessageChunk(content=chunk['content']))
+        yield ChatGenerationChunk(
+            message=AIMessageChunk(content="", response_metadata={"time_in_sec": response['time_in_seconds']})
         )
-        yield chunk
 
     @property
     def _llm_type(self) -> str:

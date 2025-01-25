@@ -14,4 +14,4 @@ add_routes(app, CustomLLM())
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="192.168.1.100", port=11434)
+    uvicorn.run(app, host="192.168.1.57", port=5001)
